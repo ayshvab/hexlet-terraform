@@ -15,6 +15,7 @@ locals {
   name        = "app"
   environment = "test"
   region      = "nyc3"
+  trimmed_db_ssl_ca = replace(data.digitalocean_database_ca.ca.certificate, "/-----BEGIN CERTIFICATE-----|-----END CERTIFICATE-----|\n|[[:space:]]/", "")
 }
 
 resource "digitalocean_ssh_key" "default" {
@@ -82,6 +83,7 @@ output "ca" {
   value = data.digitalocean_database_ca.ca.certificate
 }
 
+
 resource "digitalocean_droplet" "vm" {
   depends_on = [digitalocean_database_cluster.dbcluster]
   image      = "docker-20-04"
@@ -100,7 +102,7 @@ resource "digitalocean_droplet" "vm" {
   }
 
   provisioner "remote-exec" {
-    inline = ["sudo docker run -d -p 0.0.0.0:80:3000 -e DB_TYPE=postgres -e DB_SSL=1 -e DB_SSL_CA=${data.digitalocean_database_ca.ca.certificate} -e DB_NAME=${digitalocean_database_cluster.dbcluster.database} -e DB_HOST=${digitalocean_database_cluster.dbcluster.host} -e DB_PORT=${digitalocean_database_cluster.dbcluster.port} -e DB_USER=${digitalocean_database_cluster.dbcluster.user} -e DB_PASS=${digitalocean_database_cluster.dbcluster.password} ghcr.io/requarks/wiki:2.5"]
+    inline = ["sudo docker run -d -p 0.0.0.0:80:3000 -e DB_TYPE=postgres -e DB_SSL=1 -e DB_SSL_CA=${local.trimmed_db_ssl_ca} -e DB_NAME=${digitalocean_database_cluster.dbcluster.database} -e DB_HOST=${digitalocean_database_cluster.dbcluster.host} -e DB_PORT=${digitalocean_database_cluster.dbcluster.port} -e DB_USER=${digitalocean_database_cluster.dbcluster.user} -e DB_PASS=${digitalocean_database_cluster.dbcluster.password} ghcr.io/requarks/wiki:2.5"]
   }
 }
 
